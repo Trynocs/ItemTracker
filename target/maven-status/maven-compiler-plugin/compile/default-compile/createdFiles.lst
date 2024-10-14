@@ -1,0 +1,6 @@
+com\trynocs\itemTracker\listeners\ItemUUIDListener.class
+com\trynocs\itemTracker\commands\Track.class
+com\trynocs\itemTracker\commands\ItemUUID.class
+com\trynocs\itemTracker\utils\ItemBuilder.class
+com\trynocs\itemTracker\main.class
+com\trynocs\itemTracker\utils\config\Configmanager.class

@@ -1,0 +1,5 @@
+messages:
+  prefix: "&b&lBlockEngine &8» &7"
+  no-perm: "Dazu hast du keine Rechte."
+  not-player: "Du musst ein Spieler sein um diesen Command auszuführen."
+  no-player: "Dieser Spieler ist offline oder existiert nicht."

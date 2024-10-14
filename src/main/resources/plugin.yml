@@ -1,0 +1,8 @@
+name: ItemTracker
+version: '0.1'
+main: com.trynocs.itemTracker.main
+api-version: '1.20'
+prefix: IT
+authors: [ Trynocs ]
+description: Track items as you wish
+website: www.trynocs.com
