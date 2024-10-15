@@ -11,7 +11,11 @@ import org.bukkit.*;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -21,7 +25,7 @@ import java.util.UUID;
 
 @CommandAlias("track|trackitem|itemtracker")
 @CommandPermission("trynocs.itemtracker.track")
-public class Track extends BaseCommand {
+public class Track extends BaseCommand implements Listener {
 
     private final Plugin plugin;
 
@@ -100,10 +104,6 @@ public class Track extends BaseCommand {
     }
 
     private void sendItemInfo(CommandSender sender, ItemStack item) {
-        String itemName = item.hasItemMeta() && item.getItemMeta().hasDisplayName()
-                ? item.getItemMeta().getDisplayName()
-                : item.getType().toString();
-
         ItemMeta meta = item.getItemMeta();
         NamespacedKey key = new NamespacedKey(plugin, "item_uuid");
         String uuidString = meta.getPersistentDataContainer().get(key, PersistentDataType.STRING);
@@ -111,23 +111,48 @@ public class Track extends BaseCommand {
         Inventory inventory = Bukkit.createInventory(null, 6 * 9, main.prefix + "§aGetracktes Item: §6" + uuidString);
 
         for (int i = 0; i < inventory.getSize(); i++) {
-            inventory.setItem(i, main.plugin.getPlacerholderItem());
+            inventory.setItem(i, new ItemBuilder(Material.LIGHT_GRAY_STAINED_GLASS_PANE).setName("§7").build());
         }
+        inventory.setItem(9, new ItemBuilder(Material.BLUE_STAINED_GLASS_PANE).setName("§7").build());
+        inventory.setItem(17, new ItemBuilder(Material.BLUE_STAINED_GLASS_PANE).setName("§7").build());
+        inventory.setItem(18, new ItemBuilder(Material.BLUE_STAINED_GLASS_PANE).setName("§7").build());
+        inventory.setItem(26, new ItemBuilder(Material.BLUE_STAINED_GLASS_PANE).setName("§7").build());
+        inventory.setItem(27, new ItemBuilder(Material.BLUE_STAINED_GLASS_PANE).setName("§7").build());
+        inventory.setItem(35, new ItemBuilder(Material.BLUE_STAINED_GLASS_PANE).setName("§7").build());
+        inventory.setItem(36, new ItemBuilder(Material.BLUE_STAINED_GLASS_PANE).setName("§7").build());
+        inventory.setItem(44, new ItemBuilder(Material.BLUE_STAINED_GLASS_PANE).setName("§7").build());
+        inventory.setItem(42, new ItemBuilder(Material.PLAYER_HEAD)
+                .setHeadOwner(findItemOwner(item) != null ? findItemOwner(item).getName() : "N/A")
+                .setName("§6Holder Infos:")
+                .setLore(
+                        "§aName: §e" + (findItemOwner(item) != null ? findItemOwner(item).getName() : "N/A"),
+                        "§aUUID: §e" + uuidString,
+                        "§aOperator: §e" + (findItemOwner(item) != null && findItemOwner(item).isOp() ? "§aJa" : "§cNein"),
+                        "§aStatus: " + (findItemOwner(item) != null && findItemOwner(item).isOnline() ? "§aOnline" : "§cOffline"),
+                        "§aLetzter Login: §e" + (findItemOwner(item) != null ? findItemOwner(item).getLastPlayed() : "N/A")
+                ).build());
 
+        inventory.setItem(38, createItemInfo(item, uuidString));
         inventory.setItem(22, item);
-
-        Player owner = findItemOwner(item);
-        if (owner != null) {
-            if (owner.isOnline()) {
-                inventory.setItem(38, new ItemBuilder(Material.PLAYER_HEAD).setHeadOwner(owner.getName()).setName("§aHolder Infos:").setLore("§aName: §6" + owner.getName(), "§aUUID: §6" + owner.getUniqueId(), "§aOperator: §6" + owner.isOp(), "§aStatus: §aOnline").build());
-            }else inventory.setItem(38, new ItemBuilder(Material.PLAYER_HEAD).setHeadOwner(owner.getName()).setName("§aHolder Infos:").setLore("§aName: §6" + owner.getName(), "§aUUID: §6" + owner.getUniqueId(), "§aOperator: §6" + owner.isOp(), "§aStatus: §7Offline", "§aLetzter Login: §6" + owner.getLastPlayed()).build());
-        } else inventory.setItem(38, new ItemBuilder(Material.SKELETON_SKULL).setName("§aHolder Infos:").setLore("Name: §7N/A", "UUID: §7N/A", "Operator: §7N/A", "Status: §7N/A", "§aLetzter Login: §7N/A").build());
 
         sender.sendMessage(main.prefix + "§aItem gefunden!");
 
         if (sender instanceof Player player) {
             player.openInventory(inventory);
         }
+    }
+
+    private ItemStack createItemInfo(ItemStack item, String uuidString) {
+        ItemBuilder itemBuilder = new ItemBuilder(Material.BOOK)
+                .setName("§6Item Informationen")
+                .setLore(
+                        "§aName: §e" + item.getType().toString(),
+                        "§aUUID: §e" + uuidString,
+                        "§aMenge: §e" + item.getAmount(),
+                        "§aHaltbarkeit: §e" + item.getDurability(),
+                        "§aEnchantments: §e" + (item.getEnchantments().isEmpty() ? "§cKeine" : item.getEnchantments().toString())
+                );
+        return itemBuilder.build();
     }
 
     private Player findItemOwner(ItemStack item) {
@@ -139,5 +164,13 @@ public class Track extends BaseCommand {
             }
         }
         return null;
+    }
+
+    @EventHandler
+    public void onClick(InventoryClickEvent event) {
+        if (event.getInventory().getItem(22) == null || event.getInventory().getItem(22).getType() == Material.AIR) return;
+        if (event.getInventory() != null && event.getView().getTitle().equals(main.prefix + "§aGetracktes Item: §6" + event.getClickedInventory().getItem(22).getItemMeta().getPersistentDataContainer().get(new NamespacedKey(plugin, "item_uuid"), PersistentDataType.STRING))) {
+            event.setCancelled(true);
+        }
     }
 }

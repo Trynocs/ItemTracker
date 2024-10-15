@@ -48,12 +48,9 @@ public final class main extends JavaPlugin {
         pluginManager = Bukkit.getPluginManager();
         commandManager = new PaperCommandManager(this);
 
-        // UUID ContextResolver registrieren
         registerUUIDContextResolver();
-
         loadConfigValues();
-        registerEvents();
-        registerCommands();
+        register();
     }
 
     @Override
@@ -72,13 +69,12 @@ public final class main extends JavaPlugin {
         });
     }
 
-    public void registerCommands() {
+    public void register() {
         // Command Registrierung
-        commandManager.registerCommand(new Track(main.plugin));
+        Track track = new Track(this);
+        commandManager.registerCommand(track);
         commandManager.registerCommand(new ItemUUID());
-    }
-
-    public void registerEvents() {
+        pluginManager.registerEvents(track, this);
         pluginManager.registerEvents(new ItemUUIDListener(this), this);
     }
 

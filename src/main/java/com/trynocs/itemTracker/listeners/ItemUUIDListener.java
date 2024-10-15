@@ -16,7 +16,9 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -24,12 +26,12 @@ public class ItemUUIDListener implements Listener {
 
     private final Plugin plugin;
     private final Set<UUID> usedUUIDs = new HashSet<>();
+    private final Map<ItemStack, String> itemUUIDMap = new HashMap<>();
 
     public ItemUUIDListener(Plugin plugin) {
         this.plugin = plugin;
     }
 
-    // Event 1: Crafting Items
     @EventHandler
     public void onItemCraft(CraftItemEvent event) {
         ItemStack result = event.getCurrentItem();
@@ -38,19 +40,16 @@ public class ItemUUIDListener implements Listener {
         }
     }
 
-    // Event 2: Player picking up items
     @EventHandler
     public void onItemPickup(PlayerPickupItemEvent event) {
         addUUIDToItem(event.getItem().getItemStack());
     }
 
-    // Event 3: Player dropping items
     @EventHandler
     public void onItemDrop(PlayerDropItemEvent event) {
         addUUIDToItem(event.getItemDrop().getItemStack());
     }
 
-    // Event 4: Manipulating inventory (click/drag)
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         ItemStack currentItem = event.getCurrentItem();
@@ -66,14 +65,12 @@ public class ItemUUIDListener implements Listener {
         }
     }
 
-    // Event 5: Breaking blocks
     @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
         ItemStack drop = new ItemStack(event.getBlock().getType());
         addUUIDToItem(drop);
     }
 
-    // Event 6: Mobs dropping items
     @EventHandler
     public void onEntityDeath(EntityDeathEvent event) {
         for (ItemStack item : event.getDrops()) {
@@ -81,7 +78,6 @@ public class ItemUUIDListener implements Listener {
         }
     }
 
-    // Event 7: Smithing table (crafting using smithing)
     @EventHandler
     public void onSmithItem(PrepareSmithingEvent event) {
         ItemStack result = event.getResult();
@@ -90,14 +86,12 @@ public class ItemUUIDListener implements Listener {
         }
     }
 
-    // Event 8: Furnace extracting items
     @EventHandler
     public void onFurnaceExtract(FurnaceExtractEvent event) {
         ItemStack item = new ItemStack(event.getItemType(), event.getItemAmount());
         addUUIDToItem(item);
     }
 
-    // Event 9: Opening containers (chests, hoppers, etc.)
     @EventHandler
     public void onInventoryOpen(InventoryOpenEvent event) {
         Inventory inventory = event.getInventory();
@@ -106,7 +100,14 @@ public class ItemUUIDListener implements Listener {
         }
     }
 
-    // Event 12: Anvil usage
+    @EventHandler
+    public void onPlayerInteract(PlayerInteractEvent event) {
+        ItemStack item = event.getItem();
+        if (item != null && item.getType() != Material.AIR) {
+            addUUIDToItem(item);
+        }
+    }
+
     @EventHandler
     public void onAnvilUse(PrepareAnvilEvent event) {
         ItemStack result = event.getResult();
@@ -115,7 +116,6 @@ public class ItemUUIDListener implements Listener {
         }
     }
 
-    // Event 13: Grindstone usage
     @EventHandler
     public void onGrindstoneUse(PrepareGrindstoneEvent event) {
         ItemStack result = event.getResult();
@@ -124,13 +124,11 @@ public class ItemUUIDListener implements Listener {
         }
     }
 
-    // Event 14: Enchanting items
     @EventHandler
     public void onEnchantItem(EnchantItemEvent event) {
         addUUIDToItem(event.getItem());
     }
 
-    // Event 15: Fishing items
     @EventHandler
     public void onPlayerFish(PlayerFishEvent event) {
         if (event.getCaught() instanceof ItemStack caughtItem) {
@@ -138,7 +136,6 @@ public class ItemUUIDListener implements Listener {
         }
     }
 
-    // Event 16: Commands (special cases where players use commands to get items)
     @EventHandler
     public void onCommand(PlayerCommandPreprocessEvent event) {
         String command = event.getMessage();
@@ -154,7 +151,6 @@ public class ItemUUIDListener implements Listener {
         }
     }
 
-    // Add a UUID to an item if it doesn't have one yet
     private void addUUIDToItem(ItemStack item) {
         if (item == null || item.getType() == Material.AIR) return;
 
@@ -162,15 +158,17 @@ public class ItemUUIDListener implements Listener {
         if (meta == null) return;
 
         NamespacedKey key = new NamespacedKey(plugin, "item_uuid");
-        if (!meta.getPersistentDataContainer().has(key, PersistentDataType.STRING)) {
-            String newUUID = generateUniqueUUID();
-            meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, newUUID);
-            item.setItemMeta(meta);
-            if (main.getPlugin().getConfigManager().getConfig().getBoolean("mode.debug") == true) System.out.println("UUID hinzugefügt: " + newUUID); // Debugging
+
+        if (!meta.getEnchants().isEmpty() || meta.hasDisplayName() || meta.hasLore()) {
+            if (!meta.getPersistentDataContainer().has(key, PersistentDataType.STRING)) {
+                String newUUID = generateUniqueUUID();
+                meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, newUUID);
+                item.setItemMeta(meta);
+                itemUUIDMap.put(item, newUUID);
+            }
         }
     }
 
-    // Generate a unique UUID
     private String generateUniqueUUID() {
         UUID uuid;
         do {
