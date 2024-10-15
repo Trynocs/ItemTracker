@@ -10,6 +10,7 @@ import com.trynocs.itemTracker.utils.config.Configmanager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.event.Listener;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -34,12 +35,12 @@ public final class main extends JavaPlugin {
     @Override
     public void onEnable() {
         getLogger().info("");
-        getLogger().info("██████╗░███████╗");
-        getLogger().info("██╔══██╗██╔════╝");
-        getLogger().info("██████╦╝█████╗░░");
-        getLogger().info("██╔══██╗██╔══╝░░");
-        getLogger().info("██████╦╝███████╗");
-        getLogger().info("╚═════╝░╚══════╝");
+        getLogger().info("██╗████████╗");
+        getLogger().info("██║╚══██╔══╝");
+        getLogger().info("██║░░░██║░░░");
+        getLogger().info("██║░░░██║░░░");
+        getLogger().info("██║░░░██║░░░");
+        getLogger().info("╚═╝░░░╚═╝░░░");
         getLogger().info("");
         getLogger().info("Plugin wird aktiviert...");
 
@@ -74,7 +75,7 @@ public final class main extends JavaPlugin {
         Track track = new Track(this);
         commandManager.registerCommand(track);
         commandManager.registerCommand(new ItemUUID());
-        pluginManager.registerEvents(track, this);
+        pluginManager.registerEvents((Listener) track, this);
         pluginManager.registerEvents(new ItemUUIDListener(this), this);
     }
 

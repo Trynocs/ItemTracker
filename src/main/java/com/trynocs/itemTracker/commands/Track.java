@@ -11,21 +11,19 @@ import org.bukkit.*;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.UUID;
 
 @CommandAlias("track|trackitem|itemtracker")
 @CommandPermission("trynocs.itemtracker.track")
-public class Track extends BaseCommand implements Listener {
+public class Track extends BaseCommand {
 
     private final Plugin plugin;
 
@@ -36,7 +34,7 @@ public class Track extends BaseCommand implements Listener {
     @Default
     public void onDefault(CommandSender sender, @Optional String itemID, String[] args) {
         if (itemID == null) {
-            sender.sendMessage(main.prefix + "§cBitte eine UUID angeben.");
+            sender.sendMessage(main.prefix + "§cPlease provide a UUID.");
             return;
         }
 
@@ -44,49 +42,34 @@ public class Track extends BaseCommand implements Listener {
         try {
             uuid = UUID.fromString(itemID);
         } catch (IllegalArgumentException e) {
-            sender.sendMessage(main.prefix + "§cUngültige UUID.");
+            sender.sendMessage(main.prefix + "§cInvalid UUID.");
             return;
         }
 
-        sender.sendMessage(main.prefix + "Suche Item...");
+        sender.sendMessage(main.prefix + "Searching for item...");
 
+        // 1. Checking for ground items in all worlds
         for (World world : Bukkit.getWorlds()) {
             for (Item itemEnt : world.getEntitiesByClass(Item.class)) {
-                if (itemEnt.getUniqueId().equals(uuid)) {
-                    ItemStack item = itemEnt.getItemStack();
+                if (hasUUID(itemEnt.getItemStack(), uuid)) {
+                    sendItemInfo(sender, itemEnt.getItemStack());
+                    return;
+                }
+            }
+        }
+
+        // 2. Checking for items in online players' inventories
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            for (int i = 0; i < player.getInventory().getSize(); i++) {
+                ItemStack item = player.getInventory().getItem(i);
+                if (item != null && hasUUID(item, uuid)) {
                     sendItemInfo(sender, item);
                     return;
                 }
             }
         }
 
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            for (int i = 0; i < player.getInventory().getSize(); i++) {
-                ItemStack item = player.getInventory().getItem(i);
-                if (item != null && item.getType() != Material.AIR) {
-                    if (hasUUID(item, uuid)) {
-                        sendItemInfo(sender, item);
-                        return;
-                    }
-                }
-            }
-        }
-
-        for (OfflinePlayer offlinePlayer : Bukkit.getOfflinePlayers()) {
-            if (offlinePlayer.getPlayer() != null) {
-                for (int i = 0; i < offlinePlayer.getPlayer().getInventory().getSize(); i++) {
-                    ItemStack item = offlinePlayer.getPlayer().getInventory().getItem(i);
-                    if (item != null && item.getType() != Material.AIR) {
-                        if (hasUUID(item, uuid)) {
-                            sendItemInfo(sender, item);
-                            return;
-                        }
-                    }
-                }
-            }
-        }
-
-        sender.sendMessage(main.prefix + "§cKein Item mit dieser UUID gefunden.");
+        sender.sendMessage(main.prefix + "§cNo item found with this UUID.");
     }
 
     private boolean hasUUID(ItemStack item, UUID uuid) {
@@ -95,8 +78,6 @@ public class Track extends BaseCommand implements Listener {
             NamespacedKey key = new NamespacedKey(plugin, "item_uuid");
             if (meta.getPersistentDataContainer().has(key, PersistentDataType.STRING)) {
                 String uuidString = meta.getPersistentDataContainer().get(key, PersistentDataType.STRING);
-                if (main.getPlugin().getConfigManager().getConfig().getBoolean("mode.debug"))
-                    System.out.println("Vergleiche UUID: " + uuidString + " mit " + uuid.toString());
                 return uuidString.equals(uuid.toString());
             }
         }
@@ -108,8 +89,9 @@ public class Track extends BaseCommand implements Listener {
         NamespacedKey key = new NamespacedKey(plugin, "item_uuid");
         String uuidString = meta.getPersistentDataContainer().get(key, PersistentDataType.STRING);
 
-        Inventory inventory = Bukkit.createInventory(null, 6 * 9, main.prefix + "§aGetracktes Item: §6" + uuidString);
+        Inventory inventory = Bukkit.createInventory(null, 6 * 9, main.prefix + "§aTracked Item: §6" + uuidString);
 
+        // Fill the inventory with glass panes
         for (int i = 0; i < inventory.getSize(); i++) {
             inventory.setItem(i, new ItemBuilder(Material.LIGHT_GRAY_STAINED_GLASS_PANE).setName("§7").build());
         }
@@ -121,36 +103,45 @@ public class Track extends BaseCommand implements Listener {
         inventory.setItem(35, new ItemBuilder(Material.BLUE_STAINED_GLASS_PANE).setName("§7").build());
         inventory.setItem(36, new ItemBuilder(Material.BLUE_STAINED_GLASS_PANE).setName("§7").build());
         inventory.setItem(44, new ItemBuilder(Material.BLUE_STAINED_GLASS_PANE).setName("§7").build());
-        inventory.setItem(42, new ItemBuilder(Material.PLAYER_HEAD)
-                .setHeadOwner(findItemOwner(item) != null ? findItemOwner(item).getName() : "N/A")
-                .setName("§6Holder Infos:")
-                .setLore(
-                        "§aName: §e" + (findItemOwner(item) != null ? findItemOwner(item).getName() : "N/A"),
-                        "§aUUID: §e" + uuidString,
-                        "§aOperator: §e" + (findItemOwner(item) != null && findItemOwner(item).isOp() ? "§aJa" : "§cNein"),
-                        "§aStatus: " + (findItemOwner(item) != null && findItemOwner(item).isOnline() ? "§aOnline" : "§cOffline"),
-                        "§aLetzter Login: §e" + (findItemOwner(item) != null ? findItemOwner(item).getLastPlayed() : "N/A")
-                ).build());
 
+        // Add the item info
         inventory.setItem(38, createItemInfo(item, uuidString));
-        inventory.setItem(22, item);
+        inventory.setItem(22, item); // Center item
 
-        sender.sendMessage(main.prefix + "§aItem gefunden!");
+        Player onlineOwner = findItemOwner(item);
+        if (onlineOwner != null) {
+            addPlayerInfoToInventory(inventory, onlineOwner, uuidString, item);
+        }
+
+        sender.sendMessage(main.prefix + "§aItem found!");
 
         if (sender instanceof Player player) {
             player.openInventory(inventory);
         }
     }
 
+    private void addPlayerInfoToInventory(Inventory inventory, Player player, String uuidString, ItemStack item) {
+        inventory.setItem(42, new ItemBuilder(Material.PLAYER_HEAD)
+                .setHeadOwner(player.getName())
+                .setName("§6Holder Info:")
+                .setLore(
+                        "§aName: §e" + player.getName(),
+                        "§aUUID: §e" + uuidString,
+                        "§aOperator: §e" + (player.isOp() ? "§aYes" : "§cNo"),
+                        "§aStatus: §aOnline",
+                        "§aLast Login: §e" + formatDate(player.getLastPlayed())
+                ).build());
+    }
+
     private ItemStack createItemInfo(ItemStack item, String uuidString) {
         ItemBuilder itemBuilder = new ItemBuilder(Material.BOOK)
-                .setName("§6Item Informationen")
+                .setName("§6Item Information")
                 .setLore(
                         "§aName: §e" + item.getType().toString(),
                         "§aUUID: §e" + uuidString,
-                        "§aMenge: §e" + item.getAmount(),
-                        "§aHaltbarkeit: §e" + item.getDurability(),
-                        "§aEnchantments: §e" + (item.getEnchantments().isEmpty() ? "§cKeine" : item.getEnchantments().toString())
+                        "§aAmount: §e" + item.getAmount(),
+                        "§aDurability: §e" + item.getDurability(),
+                        "§aEnchantments: §e" + (item.getEnchantments().isEmpty() ? "§cNone" : item.getEnchantments().toString())
                 );
         return itemBuilder.build();
     }
@@ -166,11 +157,8 @@ public class Track extends BaseCommand implements Listener {
         return null;
     }
 
-    @EventHandler
-    public void onClick(InventoryClickEvent event) {
-        if (event.getInventory().getItem(22) == null || event.getInventory().getItem(22).getType() == Material.AIR) return;
-        if (event.getInventory() != null && event.getView().getTitle().equals(main.prefix + "§aGetracktes Item: §6" + event.getClickedInventory().getItem(22).getItemMeta().getPersistentDataContainer().get(new NamespacedKey(plugin, "item_uuid"), PersistentDataType.STRING))) {
-            event.setCancelled(true);
-        }
+    private String formatDate(long timestamp) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        return sdf.format(new Date(timestamp));
     }
 }
