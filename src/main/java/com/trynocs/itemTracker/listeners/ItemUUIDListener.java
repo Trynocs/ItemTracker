@@ -1,6 +1,5 @@
 package com.trynocs.itemTracker.listeners;
 
-import com.trynocs.itemTracker.main;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.event.EventHandler;
@@ -176,5 +175,9 @@ public class ItemUUIDListener implements Listener {
         } while (usedUUIDs.contains(uuid));
         usedUUIDs.add(uuid);
         return uuid.toString();
+    }
+
+    public Set<UUID> getUsedUUIDs() {
+        return usedUUIDs;
     }
 }
