@@ -4,6 +4,7 @@ import co.aikar.commands.PaperCommandManager;
 import co.aikar.commands.contexts.ContextResolver;
 import com.trynocs.itemTracker.commands.ItemUUID;
 import com.trynocs.itemTracker.commands.Track;
+import com.trynocs.itemTracker.listeners.DupeDetector;
 import com.trynocs.itemTracker.listeners.ItemUUIDListener;
 import com.trynocs.itemTracker.utils.ItemBuilder;
 import com.trynocs.itemTracker.utils.config.Configmanager;
@@ -15,6 +16,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import javax.swing.plaf.basic.BasicSliderUI;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -77,6 +79,7 @@ public final class main extends JavaPlugin {
         commandManager.registerCommand(new ItemUUID());
         pluginManager.registerEvents((Listener) track, this);
         pluginManager.registerEvents(new ItemUUIDListener(this), this);
+        pluginManager.registerEvents(new DupeDetector(), this);
     }
 
     private void loadConfigValues() {
